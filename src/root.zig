@@ -1,19 +1,31 @@
 const std = @import("std");
 
-const layout = @import("layout.zig");
+const Layout = @import("Layout.zig");
 const Node = @import("Node.zig");
 const render = @import("render.zig");
 pub const RenderCommand = render.RenderCommand;
 
+/// Result of measuring text dimensions
+pub const TextMeasurement = struct {
+    width: i32,
+    height: i32,
+};
+
+/// Function signature for text measurement callback.
+/// The user must provide an implementation based on their renderer (Raylib, SDL, etc.)
+pub const MeasureTextFn = *const fn (text: []const u8, font_size: i32) TextMeasurement;
+
 pub const UI = struct {
     allocator: std.mem.Allocator,
+    measure_text_fn: MeasureTextFn,
 
     root: ?Node = null,
     stack: std.ArrayList(*Node),
 
-    pub fn init(allocator: std.mem.Allocator) UI {
+    pub fn init(allocator: std.mem.Allocator, measure_text_fn: MeasureTextFn) UI {
         return .{
             .allocator = allocator,
+            .measure_text_fn = measure_text_fn,
             .stack = std.ArrayList(*Node).empty,
         };
     }
@@ -148,7 +160,7 @@ pub const UI = struct {
 
     pub fn computeLayout(self: *UI, window_width: i32, window_height: i32) void {
         if (self.root) |*root| {
-            layout.layoutNode(root, 0, 0, window_width, window_height);
+            Layout.compute(root, 0, 0, window_width, window_height, self.measure_text_fn);
         }
     }
 

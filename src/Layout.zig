@@ -1,6 +1,20 @@
 const std = @import("std");
 
 const Node = @import("Node.zig");
+const root = @import("root.zig");
+
+const MeasureTextFn = root.MeasureTextFn;
+
+const Layout = @This();
+
+measure_text_fn: MeasureTextFn,
+
+/// Kickstart function that creates a Layout instance and performs the layout.
+/// This is the main entry point for computing layout from outside this module.
+pub fn compute(root_node: *Node, x: i32, y: i32, available_width: i32, available_height: i32, measure_text_fn: MeasureTextFn) void {
+    const self = Layout{ .measure_text_fn = measure_text_fn };
+    self.layoutNode(root_node, x, y, available_width, available_height);
+}
 
 /// Entry point for laying out a node and its children.
 /// This is a recursive function that computes the final position (x, y) and size
@@ -14,7 +28,7 @@ const Node = @import("Node.zig");
 /// The layout algorithm works in two main phases:
 /// 1. Measurement: Determine the actual size each node needs/wants
 /// 2. Positioning: Place each node at its final position based on alignment
-pub fn layoutNode(node: *Node, x: i32, y: i32, available_width: i32, available_height: i32) void {
+pub fn layoutNode(self: *const Layout, node: *Node, x: i32, y: i32, available_width: i32, available_height: i32) void {
     // Set the node's position - this is where the node's top-left corner will be
     node.x = x;
     node.y = y;
@@ -22,7 +36,7 @@ pub fn layoutNode(node: *Node, x: i32, y: i32, available_width: i32, available_h
     // Only containers need special layout logic; leaf nodes (text, buttons)
     // just need their size set based on their content
     switch (node.type) {
-        .container => layoutContainer(node, available_width, available_height),
+        .container => self.layoutContainer(node, available_width, available_height),
         else => {},
     }
 }
@@ -32,7 +46,7 @@ pub fn layoutNode(node: *Node, x: i32, y: i32, available_width: i32, available_h
 /// 1. Calculate their content area (subtracting padding from available space)
 /// 2. Layout their children (using direction-specific logic)
 /// 3. Calculate their own final size based on their sizing mode
-fn layoutContainer(node: *Node, available_width: i32, available_height: i32) void {
+fn layoutContainer(self: *const Layout, node: *Node, available_width: i32, available_height: i32) void {
     const container = &node.type.container;
 
     // Calculate the content area - this is the space available for children
@@ -42,9 +56,9 @@ fn layoutContainer(node: *Node, available_width: i32, available_height: i32) voi
 
     // Layout children based on the container's direction
     if (container.direction == .vertical) {
-        layoutVertical(node, content_width, content_height);
+        self.layoutVertical(node, content_width, content_height);
     } else {
-        layoutHorizontal(node, content_width, content_height);
+        self.layoutHorizontal(node, content_width, content_height);
     }
 
     // Now that children are sized and positioned, calculate this container's final size
@@ -81,7 +95,7 @@ fn layoutContainer(node: *Node, available_width: i32, available_height: i32) voi
 ///   - Apply main-axis (Y) alignment to the group of children
 ///   - Apply cross-axis (X) alignment to each individual child
 ///   - Recursively layout each child
-fn layoutVertical(node: *Node, content_width: i32, content_height: i32) void {
+fn layoutVertical(self: *const Layout, node: *Node, content_width: i32, content_height: i32) void {
     const container = &node.type.container;
     const children = container.children.items;
 
@@ -107,7 +121,7 @@ fn layoutVertical(node: *Node, content_width: i32, content_height: i32) void {
             },
             // Fit height: child wants to be sized based on its content
             .fit => {
-                child.actual_height = measureChildHeight(child);
+                child.actual_height = self.measureChildHeight(child);
                 used_height += child.actual_height;
             },
             // Grow height: child wants to take up remaining space
@@ -120,7 +134,7 @@ fn layoutVertical(node: *Node, content_width: i32, content_height: i32) void {
         // Also calculate widths now (simpler since cross-axis doesn't affect main-axis)
         child.actual_width = switch (child.sizing.width) {
             .fixed => |w| w,
-            .fit => measureChildWidth(child),
+            .fit => self.measureChildWidth(child),
             // For vertical containers, a child with grow width takes the full content width
             .grow => content_width,
         };
@@ -176,7 +190,7 @@ fn layoutVertical(node: *Node, content_width: i32, content_height: i32) void {
     for (children) |*child| {
         // Cross-axis (X) alignment - determines where child sits horizontally
         // Check if child has self_alignment - if so, it overrides the parent's child_alignment
-        const align_x = if (child.self_alignment) |self| self.x else container.child_alignment.x;
+        const align_x = if (child.self_alignment) |self_align| self_align.x else container.child_alignment.x;
 
         child.x = switch (align_x) {
             // .start: align to the left edge of content area
@@ -191,7 +205,7 @@ fn layoutVertical(node: *Node, content_width: i32, content_height: i32) void {
         child.y = current_y;
 
         // Recursively layout this child (and its descendants if it's a container)
-        layoutNode(child, child.x, child.y, child.actual_width, child.actual_height);
+        self.layoutNode(child, child.x, child.y, child.actual_width, child.actual_height);
 
         // Move down by this child's height plus the gap for the next child
         current_y += child.actual_height + container.child_gap;
@@ -201,15 +215,12 @@ fn layoutVertical(node: *Node, content_width: i32, content_height: i32) void {
 /// Measures the intrinsic width of a node based on its content.
 /// This is used when a node's width sizing mode is .fit
 ///
-/// Returns a rough estimate for each node type:
-/// - Text: approximately 10 pixels per character
-/// - Button: text width plus padding
-/// - Container: arbitrary placeholder (100px)
-fn measureChildWidth(child: *Node) i32 {
+/// Uses the user-provided measurement function for accurate text sizing.
+fn measureChildWidth(self: *const Layout, child: *Node) i32 {
     return switch (child.type) {
-        .text => |t| @as(i32, @intCast(t.content.len)) * 10,
+        .text => |t| self.measure_text_fn(t.content, t.font_size).width,
         .button => |b| {
-            const text_width = @as(i32, @intCast(b.label.len)) * 10;
+            const text_width = self.measure_text_fn(b.label, b.font_size).width;
             return text_width + child.padding.left + child.padding.right;
         },
         .container => 100,
@@ -219,15 +230,12 @@ fn measureChildWidth(child: *Node) i32 {
 /// Measures the intrinsic height of a node based on its content.
 /// This is used when a node's height sizing mode is .fit
 ///
-/// Returns:
-/// - Text: font size plus small margin (4px)
-/// - Button: text height plus padding
-/// - Container: arbitrary placeholder (100px)
-fn measureChildHeight(child: *Node) i32 {
+/// Uses the user-provided measurement function for accurate text sizing.
+fn measureChildHeight(self: *const Layout, child: *Node) i32 {
     return switch (child.type) {
-        .text => |t| t.font_size + 4,
+        .text => |t| self.measure_text_fn(t.content, t.font_size).height,
         .button => |b| {
-            const text_height = b.font_size + 4;
+            const text_height = self.measure_text_fn(b.label, b.font_size).height;
             return text_height + child.padding.top + child.padding.bottom;
         },
         .container => 100,
@@ -250,7 +258,7 @@ fn measureChildHeight(child: *Node) i32 {
 ///   - Apply main-axis (X) alignment to the group of children
 ///   - Apply cross-axis (Y) alignment to each individual child
 ///   - Recursively layout each child
-fn layoutHorizontal(node: *Node, content_width: i32, content_height: i32) void {
+fn layoutHorizontal(self: *const Layout, node: *Node, content_width: i32, content_height: i32) void {
     const container = &node.type.container;
     const children = container.children.items;
 
@@ -264,7 +272,7 @@ fn layoutHorizontal(node: *Node, content_width: i32, content_height: i32) void {
 
     // Calculate total width taken up by gaps between children
     // If there are N children, there are N-1 gaps between them
-    const spacing_total = container.child_gap * @as(i32, @intCast(children.len - 1));
+    const gap_total = container.child_gap * @as(i32, @intCast(children.len - 1));
 
     // First pass: measure all children and calculate their widths
     for (children) |*child| {
@@ -276,7 +284,7 @@ fn layoutHorizontal(node: *Node, content_width: i32, content_height: i32) void {
             },
             // Fit width: child wants to be sized based on its content
             .fit => {
-                child.actual_width = measureChildWidth(child);
+                child.actual_width = self.measureChildWidth(child);
                 used_width += child.actual_width;
             },
             // Grow width: child wants to take up remaining space
@@ -289,7 +297,7 @@ fn layoutHorizontal(node: *Node, content_width: i32, content_height: i32) void {
         // Also calculate heights now (simpler since cross-axis doesn't affect main-axis)
         child.actual_height = switch (child.sizing.height) {
             .fixed => |h| h,
-            .fit => measureChildHeight(child),
+            .fit => self.measureChildHeight(child),
             // For horizontal containers, a child with grow height takes the full content height
             .grow => content_height,
         };
@@ -298,7 +306,7 @@ fn layoutHorizontal(node: *Node, content_width: i32, content_height: i32) void {
     // ========== PHASE 2: GROWTH DISTRIBUTION ==========
 
     // Calculate how much space is left after fixed/fit children and gaps
-    const remaining_width = content_width - used_width - spacing_total;
+    const remaining_width = content_width - used_width - gap_total;
 
     // If there are children that want to grow AND there's space available,
     // distribute the remaining space proportionally by weight
@@ -320,7 +328,7 @@ fn layoutHorizontal(node: *Node, content_width: i32, content_height: i32) void {
     for (children) |*child| {
         total_children_width += child.actual_width;
     }
-    total_children_width += spacing_total;
+    total_children_width += gap_total;
 
     // Start positioning children from the left of the content area
     // This is the main-axis (X) starting position
@@ -345,7 +353,7 @@ fn layoutHorizontal(node: *Node, content_width: i32, content_height: i32) void {
     for (children) |*child| {
         // Cross-axis (Y) alignment - determines where child sits vertically
         // Check if child has self_alignment - if so, it overrides the parent's child_alignment
-        const align_y = if (child.self_alignment) |self| self.y else container.child_alignment.y;
+        const align_y = if (child.self_alignment) |self_align| self_align.y else container.child_alignment.y;
 
         child.y = switch (align_y) {
             // .start: align to the top edge of content area
@@ -360,7 +368,7 @@ fn layoutHorizontal(node: *Node, content_width: i32, content_height: i32) void {
         child.x = current_x;
 
         // Recursively layout this child (and its descendants if it's a container)
-        layoutNode(child, child.x, child.y, child.actual_width, child.actual_height);
+        self.layoutNode(child, child.x, child.y, child.actual_width, child.actual_height);
 
         // Move right by this child's width plus the gap for the next child
         current_x += child.actual_width + container.child_gap;

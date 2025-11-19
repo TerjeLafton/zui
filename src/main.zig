@@ -9,7 +9,7 @@ pub fn main() !void {
     var gpa = std.heap.DebugAllocator(.{}).init;
     defer _ = gpa.deinit();
 
-    var ui = zui.UI.init(gpa.allocator());
+    var ui = zui.UI.init(gpa.allocator(), rl_render.measureText);
     defer ui.deinit();
 
     const screenWidth = 800;
@@ -25,6 +25,7 @@ pub fn main() !void {
         rl.clearBackground(rl.Color.white);
 
         try ui.beginVBox(.{
+            .padding = .all(25),
             .sizing = .{
                 .height = .{ .grow = 1 },
                 .width = .{ .grow = 1 },
@@ -32,7 +33,7 @@ pub fn main() !void {
         });
 
         try ui.text("HEADER!", .{
-            .font_size = 32,
+            .font_size = 100,
             .self_alignment = .{ .x = .center },
         });
         try ui.beginHBox(.{
