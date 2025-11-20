@@ -3,8 +3,8 @@ const std = @import("std");
 const Node = @import("Node.zig");
 
 pub const RenderCommand = union(enum) {
-    rect: struct { x: i32, y: i32, w: i32, h: i32, color: Node.Color },
-    rect_lines: struct { x: i32, y: i32, w: i32, h: i32, thickness: i32, color: Node.Color },
+    rect: struct { x: i32, y: i32, w: i32, h: i32, corner_radius: i32, color: Node.Color },
+    rect_lines: struct { x: i32, y: i32, w: i32, h: i32, thickness: i32, corner_radius: i32, color: Node.Color },
     text: struct { x: i32, y: i32, content: []const u8, size: i32, color: Node.Color },
 };
 
@@ -25,6 +25,7 @@ fn collectFromNode(node: *const Node, commands: *std.ArrayList(RenderCommand), a
                 .y = node.y,
                 .w = node.actual_width,
                 .h = node.actual_height,
+                .corner_radius = node.corner_radius,
                 .color = bg,
             },
         });
@@ -41,6 +42,7 @@ fn collectFromNode(node: *const Node, commands: *std.ArrayList(RenderCommand), a
                         .w = node.actual_width,
                         .h = node.actual_height,
                         .thickness = border.width,
+                        .corner_radius = node.corner_radius,
                         .color = border.color,
                     },
                 });

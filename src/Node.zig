@@ -12,6 +12,7 @@ actual_width: i32 = 0,
 actual_height: i32 = 0,
 
 bg_color: ?Color = null,
+corner_radius: i32 = 0,
 
 type: NodeType,
 

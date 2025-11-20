@@ -72,6 +72,8 @@ fn section(ui: *zui.UI, text: []const u8) !void {
             .width = 5,
             .color = .{ .r = 0, .g = 0, .b = 0 },
         },
+        .corner_radius = 20,
+        .bg_color = .{ .r = 200, .g = 200, .b = 200, .a = 255 },
         .sizing = .{
             .width = .{ .grow = 1 },
             .height = .{ .grow = 1 },

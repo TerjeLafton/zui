@@ -25,17 +25,33 @@ pub fn render(commands: []zui.RenderCommand) void {
         switch (command) {
             .rect => |r| {
                 const color = rl.Color{ .r = r.color.r, .g = r.color.g, .b = r.color.b, .a = r.color.a };
-                rl.drawRectangle(r.x, r.y, r.w, r.h, color);
+                const rect = rl.Rectangle{ .x = @floatFromInt(r.x), .y = @floatFromInt(r.y), .width = @floatFromInt(r.w), .height = @floatFromInt(r.h) };
+
+                if (r.corner_radius > 0) {
+                    // Convert pixel radius to Raylib's 0.0-1.0 ratio
+                    const min_dimension = @min(r.w, r.h);
+                    const max_radius = @divTrunc(min_dimension, 2);
+                    const clamped_radius = @min(r.corner_radius, max_radius);
+                    const roundness = @as(f32, @floatFromInt(clamped_radius)) / @as(f32, @floatFromInt(max_radius));
+                    rl.drawRectangleRounded(rect, roundness, 4, color);
+                } else {
+                    rl.drawRectangle(r.x, r.y, r.w, r.h, color);
+                }
             },
             .rect_lines => |r| {
                 const color = rl.Color{ .r = r.color.r, .g = r.color.g, .b = r.color.b, .a = r.color.a };
-                const rect = rl.Rectangle{
-                    .x = @floatFromInt(r.x),
-                    .y = @floatFromInt(r.y),
-                    .width = @floatFromInt(r.w),
-                    .height = @floatFromInt(r.h),
-                };
-                rl.drawRectangleLinesEx(rect, @floatFromInt(r.thickness), color);
+                const rect = rl.Rectangle{ .x = @floatFromInt(r.x), .y = @floatFromInt(r.y), .width = @floatFromInt(r.w), .height = @floatFromInt(r.h) };
+
+                if (r.corner_radius > 0) {
+                    // Convert pixel radius to Raylib's 0.0-1.0 ratio
+                    const min_dimension = @min(r.w, r.h);
+                    const max_radius = @divTrunc(min_dimension, 2);
+                    const clamped_radius = @min(r.corner_radius, max_radius);
+                    const roundness = @as(f32, @floatFromInt(clamped_radius)) / @as(f32, @floatFromInt(max_radius));
+                    rl.drawRectangleRoundedLinesEx(rect, roundness, 0, @floatFromInt(r.thickness), color);
+                } else {
+                    rl.drawRectangleLinesEx(rect, @floatFromInt(r.thickness), color);
+                }
             },
             .text => |t| {
                 // Convert to null-terminated string for raylib
