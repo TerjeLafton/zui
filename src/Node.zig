@@ -82,6 +82,7 @@ fn formatNode(node: Node, writer: *std.io.Writer, depth: usize) std.io.Writer.Er
 const NodeType = union(enum) {
     container: struct {
         direction: enum { vertical, horizontal },
+        border: ?Border = null,
         child_gap: i32,
         child_alignment: Alignment = .{},
         children: std.ArrayList(Node),
@@ -116,6 +117,11 @@ pub const SizeMode = union(enum) {
 pub const Sizing = struct {
     width: SizeMode = .fit,
     height: SizeMode = .fit,
+};
+
+pub const Border = struct {
+    width: i32 = 0,
+    color: Color = Color{ .r = 0, .g = 0, .b = 0, .a = 255 },
 };
 
 pub const Alignment = struct {

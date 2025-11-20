@@ -25,6 +25,10 @@ pub fn main() !void {
         rl.clearBackground(rl.Color.white);
 
         try ui.beginVBox(.{
+            .border = .{
+                .width = 5,
+                .color = .{ .r = 0, .g = 0, .b = 0 },
+            },
             .padding = .all(25),
             .sizing = .{
                 .height = .{ .grow = 1 },
@@ -37,6 +41,7 @@ pub fn main() !void {
             .self_alignment = .{ .x = .center },
         });
         try ui.beginHBox(.{
+            .child_gap = 25,
             .sizing = .{
                 .height = .{ .grow = 1 },
                 .width = .{ .grow = 1 },
@@ -63,6 +68,10 @@ pub fn main() !void {
 
 fn section(ui: *zui.UI, text: []const u8) !void {
     try ui.beginVBox(.{
+        .border = .{
+            .width = 5,
+            .color = .{ .r = 0, .g = 0, .b = 0 },
+        },
         .sizing = .{
             .width = .{ .grow = 1 },
             .height = .{ .grow = 1 },

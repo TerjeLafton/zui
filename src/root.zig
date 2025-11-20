@@ -39,6 +39,7 @@ pub const UI = struct {
 
     pub fn beginVBox(self: *UI, opts: struct {
         sizing: Node.Sizing = .{},
+        border: ?Node.Border = null,
         self_alignment: ?Node.Alignment = null,
         child_alignment: Node.Alignment = .{},
         child_gap: i32 = 0,
@@ -53,6 +54,7 @@ pub const UI = struct {
             .type = .{
                 .container = .{
                     .direction = .vertical,
+                    .border = opts.border,
                     .child_gap = opts.child_gap,
                     .child_alignment = opts.child_alignment,
                     .children = std.ArrayList(Node).empty,
@@ -65,6 +67,7 @@ pub const UI = struct {
 
     pub fn beginHBox(self: *UI, opts: struct {
         sizing: Node.Sizing = .{},
+        border: ?Node.Border = null,
         self_alignment: ?Node.Alignment = null,
         child_alignment: Node.Alignment = .{},
         child_gap: i32 = 0,
@@ -79,13 +82,13 @@ pub const UI = struct {
             .type = .{
                 .container = .{
                     .direction = .horizontal,
+                    .border = opts.border,
                     .child_gap = opts.child_gap,
                     .child_alignment = opts.child_alignment,
                     .children = std.ArrayList(Node).empty,
                 },
             },
         };
-
         try self.addNode(node);
     }
 

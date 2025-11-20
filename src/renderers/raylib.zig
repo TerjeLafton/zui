@@ -24,13 +24,18 @@ pub fn render(commands: []zui.RenderCommand) void {
     for (commands) |command| {
         switch (command) {
             .rect => |r| {
-                const color = rl.Color{
-                    .r = r.color.r,
-                    .g = r.color.g,
-                    .b = r.color.b,
-                    .a = r.color.a,
-                };
+                const color = rl.Color{ .r = r.color.r, .g = r.color.g, .b = r.color.b, .a = r.color.a };
                 rl.drawRectangle(r.x, r.y, r.w, r.h, color);
+            },
+            .rect_lines => |r| {
+                const color = rl.Color{ .r = r.color.r, .g = r.color.g, .b = r.color.b, .a = r.color.a };
+                const rect = rl.Rectangle{
+                    .x = @floatFromInt(r.x),
+                    .y = @floatFromInt(r.y),
+                    .width = @floatFromInt(r.w),
+                    .height = @floatFromInt(r.h),
+                };
+                rl.drawRectangleLinesEx(rect, @floatFromInt(r.thickness), color);
             },
             .text => |t| {
                 // Convert to null-terminated string for raylib
@@ -42,12 +47,7 @@ pub fn render(commands: []zui.RenderCommand) void {
                     buf[len] = 0;
                     break :blk buf[0..len :0];
                 };
-                const color = rl.Color{
-                    .r = t.color.r,
-                    .g = t.color.g,
-                    .b = t.color.b,
-                    .a = t.color.a,
-                };
+                const color = rl.Color{ .r = t.color.r, .g = t.color.g, .b = t.color.b, .a = t.color.a };
                 rl.drawText(text, t.x, t.y, t.size, color);
             },
         }
