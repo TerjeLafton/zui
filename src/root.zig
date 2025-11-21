@@ -15,18 +15,46 @@ pub const TextMeasurement = struct {
 /// The user must provide an implementation based on their renderer (Raylib, SDL, etc.)
 pub const MeasureTextFn = *const fn (text: []const u8, font_size: i32) TextMeasurement;
 
+/// Mouse input state for a single frame.
+/// This is renderer-agnostic - the user provides this based on their input system.
+pub const MouseInput = struct {
+    x: i32,
+    y: i32,
+    left_pressed: bool = false, // Pressed this frame (was up, now down)
+    left_down: bool = false, // Currently held down
+    left_released: bool = false, // Released this frame (was down, now up)
+};
+
+/// Rectangle representing an interactive element's position from the previous frame.
+/// Used for immediate-mode click detection.
+const InteractableRect = struct {
+    x: i32,
+    y: i32,
+    w: i32,
+    h: i32,
+};
+
 pub const UI = struct {
     allocator: std.mem.Allocator,
     measure_text_fn: MeasureTextFn,
 
     root: ?Node = null,
     stack: std.ArrayList(*Node),
+    mouse_input: MouseInput = .{ .x = 0, .y = 0 },
+
+    // Immediate-mode interaction (ImGui-style):
+    // Store element rects from previous frame, check against them when called.
+    // Keyed by explicit user-provided ID.
+    prev_interactables: std.StringHashMap(InteractableRect),
+    curr_interactables: std.StringHashMap(InteractableRect),
 
     pub fn init(allocator: std.mem.Allocator, measure_text_fn: MeasureTextFn) UI {
         return .{
             .allocator = allocator,
             .measure_text_fn = measure_text_fn,
             .stack = std.ArrayList(*Node).empty,
+            .prev_interactables = std.StringHashMap(InteractableRect).init(allocator),
+            .curr_interactables = std.StringHashMap(InteractableRect).init(allocator),
         };
     }
 
@@ -35,6 +63,19 @@ pub const UI = struct {
             root_node.deinit(self.allocator);
         }
         self.stack.deinit(self.allocator);
+        self.prev_interactables.deinit();
+        self.curr_interactables.deinit();
+    }
+
+    pub fn setMouseInput(self: *UI, mouse_input: MouseInput) void {
+        self.mouse_input = mouse_input;
+
+        // Swap: previous frame's positions become current for lookups,
+        // clear current to build new positions this frame
+        const temp = self.prev_interactables;
+        self.prev_interactables = self.curr_interactables;
+        self.curr_interactables = temp;
+        self.curr_interactables.clearRetainingCapacity();
     }
 
     pub fn beginVBox(self: *UI, opts: struct {
@@ -124,13 +165,13 @@ pub const UI = struct {
         try self.addNode(node);
     }
 
-    pub fn button(self: *UI, label: []const u8, opts: struct {
+    pub fn button(self: *UI, id: []const u8, label: []const u8, opts: struct {
         sizing: Node.Sizing = .{},
         self_alignment: ?Node.Alignment = null,
         bg_normal: Node.Color = .{ .r = 150, .g = 150, .b = 150, .a = 255 },
         font_color: Node.Color = .{ .r = 255, .g = 255, .b = 255, .a = 255 },
         font_size: i32 = 16,
-    }) !void {
+    }) !bool {
         const node = Node{
             .sizing = opts.sizing,
             .self_alignment = opts.self_alignment,
@@ -138,6 +179,7 @@ pub const UI = struct {
             .padding = .all(10),
             .type = .{
                 .button = .{
+                    .id = id,
                     .label = label,
                     .font_color = opts.font_color,
                     .font_size = opts.font_size,
@@ -145,29 +187,70 @@ pub const UI = struct {
             },
         };
 
-        try self.addNode(node);
+        _ = try self.addNodeAndGetPointer(node);
+
+        // Check if clicked using previous frame's position
+        if (self.prev_interactables.get(id)) |rect| {
+            if (self.mouse_input.left_pressed) {
+                const in_bounds = self.mouse_input.x >= rect.x and
+                    self.mouse_input.x < rect.x + rect.w and
+                    self.mouse_input.y >= rect.y and
+                    self.mouse_input.y < rect.y + rect.h;
+                return in_bounds;
+            }
+        }
+        return false;
     }
 
     fn addNode(self: *UI, node: Node) !void {
+        _ = try self.addNodeAndGetPointer(node);
+    }
+
+    fn addNodeAndGetPointer(self: *UI, node: Node) !*Node {
         if (self.stack.items.len > 0) {
             const parent = self.stack.items[self.stack.items.len - 1];
             try parent.type.container.children.append(self.allocator, node);
+            const added = &parent.type.container.children.items[parent.type.container.children.items.len - 1];
 
             if (node.type == .container) {
-                const added = &parent.type.container.children.items[parent.type.container.children.items.len - 1];
                 try self.stack.append(self.allocator, added);
             }
+            return added;
         } else {
             self.root = node;
             if (node.type == .container) {
                 try self.stack.append(self.allocator, &self.root.?);
             }
+            return &self.root.?;
         }
     }
 
-    pub fn computeLayout(self: *UI, window_width: i32, window_height: i32) void {
+    pub fn computeLayout(self: *UI, window_width: i32, window_height: i32) !void {
         if (self.root) |*root| {
             Layout.compute(root, 0, 0, window_width, window_height, self.measure_text_fn);
+            // After layout, store positions of interactive elements for next frame
+            try self.storeInteractablePositions(root);
+        }
+    }
+
+    /// Recursively walks the UI tree to store positions of interactive elements.
+    /// These positions are used next frame for click detection.
+    fn storeInteractablePositions(self: *UI, node: *Node) !void {
+        // If this is an interactive node, store its position
+        if (node.type == .button) {
+            try self.curr_interactables.put(node.type.button.id, .{
+                .x = node.x,
+                .y = node.y,
+                .w = node.actual_width,
+                .h = node.actual_height,
+            });
+        }
+
+        // Recursively process children
+        if (node.type == .container) {
+            for (node.type.container.children.items) |*child| {
+                try self.storeInteractablePositions(child);
+            }
         }
     }
 

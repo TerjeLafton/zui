@@ -96,6 +96,7 @@ const NodeType = union(enum) {
     },
 
     button: struct {
+        id: []const u8,
         label: []const u8,
         font_color: Color,
         font_size: i32,

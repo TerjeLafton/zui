@@ -21,6 +21,15 @@ pub fn main() !void {
     rl.setTargetFPS(60);
 
     while (!rl.windowShouldClose()) {
+        // Provide mouse input to UI
+        ui.setMouseInput(.{
+            .x = rl.getMouseX(),
+            .y = rl.getMouseY(),
+            .left_pressed = rl.isMouseButtonPressed(.left),
+            .left_down = rl.isMouseButtonDown(.left),
+            .left_released = rl.isMouseButtonReleased(.left),
+        });
+
         rl.beginDrawing();
         rl.clearBackground(rl.Color.white);
 
@@ -48,14 +57,14 @@ pub fn main() !void {
             },
         });
 
-        try section(&ui, "Left <--");
-        try section(&ui, "Right -->");
+        try section(&ui, "left_btn", "Left <--");
+        try section(&ui, "right_btn", "Right -->");
 
         ui.endHBox();
 
         ui.endVBox();
 
-        ui.computeLayout(screenWidth, screenHeight);
+        try ui.computeLayout(screenWidth, screenHeight);
 
         const commands = try ui.getRenderCommands();
         defer gpa.allocator().free(commands);
@@ -66,13 +75,14 @@ pub fn main() !void {
     }
 }
 
-fn section(ui: *zui.UI, text: []const u8) !void {
+fn section(ui: *zui.UI, id: []const u8, text: []const u8) !void {
     try ui.beginVBox(.{
         .border = .{
             .width = 5,
             .color = .{ .r = 0, .g = 0, .b = 0 },
         },
         .corner_radius = 20,
+        .padding = .all(20),
         .bg_color = .{ .r = 200, .g = 200, .b = 200, .a = 255 },
         .sizing = .{
             .width = .{ .grow = 1 },
@@ -82,7 +92,11 @@ fn section(ui: *zui.UI, text: []const u8) !void {
             .x = .center,
             .y = .center,
         },
+        .child_gap = 15,
     });
-    try ui.text(text, .{});
+    try ui.text(text, .{ .font_size = 24 });
+    if (try ui.button(id, "Click me!", .{})) {
+        std.debug.print("Button '{s}' was clicked!\n", .{id});
+    }
     ui.endVBox();
 }
