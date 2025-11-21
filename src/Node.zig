@@ -144,4 +144,16 @@ const NodeType = union(enum) {
         handle_color: Color,
         handle_width: i32,
     },
+
+    input_text: struct {
+        id: []const u8,
+        content: []const u8,
+        placeholder: []const u8,
+        focused: bool,
+        font_color: Color,
+        placeholder_color: Color,
+        font_size: i32,
+        border: ?Border = null,
+        cursor_offset: i32 = 0,
+    },
 };

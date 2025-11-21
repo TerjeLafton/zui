@@ -3,10 +3,7 @@ const std = @import("std");
 const rl = @import("raylib");
 const zui = @import("zui");
 
-/// Raylib-specific text measurement implementation.
-/// Converts text to null-terminated format and uses Raylib's measureText function.
 pub fn measureText(text: []const u8, font_size: i32) zui.TextMeasurement {
-    // Raylib requires null-terminated strings, so we need to convert
     var buf: [256:0]u8 = undefined;
     const len = @min(text.len, buf.len - 1);
     @memcpy(buf[0..len], text[0..len]);
@@ -18,6 +15,31 @@ pub fn measureText(text: []const u8, font_size: i32) zui.TextMeasurement {
         .width = width,
         .height = font_size,
     };
+}
+
+var keyboard_char_buf: [32]u8 = undefined;
+
+pub fn getKeyboardInput() zui.UI.KeyboardInput {
+    var result = zui.UI.KeyboardInput{};
+
+    // Collect typed characters into static buffer
+    var char_len: usize = 0;
+
+    while (true) {
+        const char = rl.getCharPressed();
+        if (char == 0) break;
+        if (char_len < keyboard_char_buf.len and char > 0 and char < 128) {
+            keyboard_char_buf[char_len] = @intCast(char);
+            char_len += 1;
+        }
+    }
+
+    result.chars = keyboard_char_buf[0..char_len];
+    result.backspace = rl.isKeyPressed(.backspace) or rl.isKeyPressedRepeat(.backspace);
+    result.enter = rl.isKeyPressed(.enter);
+    result.escape = rl.isKeyPressed(.escape);
+
+    return result;
 }
 
 pub fn render(commands: []zui.RenderCommand) void {
@@ -54,10 +76,8 @@ pub fn render(commands: []zui.RenderCommand) void {
                 }
             },
             .text => |t| {
-                // Convert to null-terminated string for raylib
                 var buf: [256]u8 = undefined;
                 const text = std.fmt.bufPrintZ(&buf, "{s}", .{t.content}) catch blk: {
-                    // If text is too long, truncate it
                     const len = @min(t.content.len, 255);
                     @memcpy(buf[0..len], t.content[0..len]);
                     buf[len] = 0;

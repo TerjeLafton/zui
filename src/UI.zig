@@ -13,6 +13,8 @@ measure_text_fn: MeasureTextFn,
 root: ?Node = null,
 stack: std.ArrayList(*Node),
 mouse_input: MouseInput = .{ .x = 0, .y = 0 },
+keyboard_input: KeyboardInput = .{},
+focused_id: ?[]const u8 = null,
 
 prev_interactables: std.StringHashMap(InteractableRect),
 curr_interactables: std.StringHashMap(InteractableRect),
@@ -43,6 +45,14 @@ pub fn setMouseInput(self: *UI, mouse_input: MouseInput) void {
     self.prev_interactables = self.curr_interactables;
     self.curr_interactables = temp;
     self.curr_interactables.clearRetainingCapacity();
+}
+
+pub fn setKeyboardInput(self: *UI, keyboard_input: KeyboardInput) void {
+    self.keyboard_input = keyboard_input;
+
+    if (keyboard_input.escape) {
+        self.focused_id = null;
+    }
 }
 
 pub fn beginVBox(self: *UI, opts: struct {
@@ -171,6 +181,85 @@ pub fn button(self: *UI, id: []const u8, label: []const u8, opts: struct {
         }
     }
     return false;
+}
+
+pub fn inputText(self: *UI, id: []const u8, buffer: []u8, len: *usize, opts: struct {
+    sizing: Node.Sizing = .{ .width = .{ .fixed = 150 }, .height = .fit },
+    self_alignment: ?Node.Alignment = null,
+    bg_color: ?Node.Color = .{ .r = 255, .g = 255, .b = 255, .a = 255 },
+    border: ?Node.Border = .{ .width = 1, .color = .{ .r = 100, .g = 100, .b = 100, .a = 255 } },
+    corner_radius: i32 = 0,
+    padding: Node.Padding = .{ .top = 5, .bottom = 5, .left = 8, .right = 8 },
+    font_color: Node.Color = .{ .r = 0, .g = 0, .b = 0, .a = 255 },
+    placeholder_color: Node.Color = .{ .r = 150, .g = 150, .b = 150, .a = 255 },
+    placeholder: []const u8 = "",
+    font_size: i32 = 16,
+}) !bool {
+    const is_focused = if (self.focused_id) |fid| std.mem.eql(u8, fid, id) else false;
+
+    const node = Node{
+        .sizing = opts.sizing,
+        .self_alignment = opts.self_alignment,
+        .bg_color = opts.bg_color,
+        .corner_radius = opts.corner_radius,
+        .padding = opts.padding,
+        .type = .{
+            .input_text = .{
+                .id = id,
+                .content = buffer[0..len.*],
+                .placeholder = opts.placeholder,
+                .focused = is_focused,
+                .font_color = opts.font_color,
+                .placeholder_color = opts.placeholder_color,
+                .font_size = opts.font_size,
+                .border = opts.border,
+            },
+        },
+    };
+
+    _ = try self.addNodeAndGetPointer(node);
+
+    var changed = false;
+
+    // Handle click to focus
+    if (self.prev_interactables.get(id)) |rect| {
+        if (self.mouse_input.left_pressed) {
+            const in_bounds = self.mouse_input.x >= rect.x and
+                self.mouse_input.x < rect.x + rect.w and
+                self.mouse_input.y >= rect.y and
+                self.mouse_input.y < rect.y + rect.h;
+            if (in_bounds) {
+                self.focused_id = id;
+            } else if (is_focused) {
+                self.focused_id = null;
+            }
+        }
+    }
+
+    // Handle keyboard input if focused
+    if (is_focused) {
+        // Handle character input
+        for (self.keyboard_input.chars) |char| {
+            if (len.* < buffer.len) {
+                buffer[len.*] = char;
+                len.* += 1;
+                changed = true;
+            }
+        }
+
+        // Handle backspace
+        if (self.keyboard_input.backspace and len.* > 0) {
+            len.* -= 1;
+            changed = true;
+        }
+
+        // Handle enter - unfocus
+        if (self.keyboard_input.enter) {
+            self.focused_id = null;
+        }
+    }
+
+    return changed;
 }
 
 pub fn slider(self: *UI, id: []const u8, value: *f32, opts: struct {
@@ -340,6 +429,14 @@ fn storeInteractablePositions(self: *UI, node: *Node) !void {
                 .h = node.actual_height,
             });
         },
+        .input_text => |t| {
+            try self.curr_interactables.put(t.id, .{
+                .x = node.x,
+                .y = node.y,
+                .w = node.actual_width,
+                .h = node.actual_height,
+            });
+        },
         .container => |cont| {
             for (cont.children.items) |*child| {
                 try self.storeInteractablePositions(child);
@@ -362,6 +459,13 @@ pub const MouseInput = struct {
     left_pressed: bool = false,
     left_down: bool = false,
     left_released: bool = false,
+};
+
+pub const KeyboardInput = struct {
+    chars: []const u8 = "",
+    backspace: bool = false,
+    enter: bool = false,
+    escape: bool = false,
 };
 
 const InteractableRect = struct {

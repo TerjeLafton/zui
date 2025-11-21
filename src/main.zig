@@ -20,7 +20,8 @@ pub fn main() !void {
 
     rl.setTargetFPS(60);
 
-    var slider_value: f32 = 0.5;
+    var input_buffer: [256]u8 = undefined;
+    var input_len: usize = 0;
 
     while (!rl.windowShouldClose()) {
         // Provide mouse input to UI
@@ -31,6 +32,7 @@ pub fn main() !void {
             .left_down = rl.isMouseButtonDown(.left),
             .left_released = rl.isMouseButtonReleased(.left),
         });
+        ui.setKeyboardInput(rl_render.getKeyboardInput());
 
         rl.beginDrawing();
         rl.clearBackground(rl.Color.white);
@@ -61,17 +63,17 @@ pub fn main() !void {
                 .width = .{ .grow = 1 },
             },
         });
-        _ = try ui.slider("my_slider", &slider_value, .{
-            .sizing = .{ .width = .{ .fixed = 200 }, .height = .{ .fixed = 24 } },
-            .corner_radius = 4,
+
+        _ = try ui.inputText("my_input", &input_buffer, &input_len, .{
+            .sizing = .{ .width = .{ .fixed = 200 }, .height = .fit },
+            .placeholder = "Type here...",
             .self_alignment = .{ .x = .center },
+            .corner_radius = 4,
         });
 
-        try ui.progressBar(slider_value, .{
-            .sizing = .{ .width = .{ .fixed = 200 }, .height = .{ .fixed = 24 } },
-            .corner_radius = 4,
-            .self_alignment = .{ .x = .center },
-        });
+        if (rl.isKeyPressed(.enter) and input_len > 0) {
+            std.debug.print("Input: {s}\n", .{input_buffer[0..input_len]});
+        }
 
         try section(&ui, "left_btn", "Left <--");
         try section(&ui, "right_btn", "Right -->");

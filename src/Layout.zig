@@ -76,6 +76,11 @@ fn layoutVertical(self: *const Layout, node: *Node, content_width: i32, content_
             .fit => self.measureChildWidth(child),
             .grow => content_width,
         };
+
+        // Update cursor offset for input_text regardless of sizing
+        if (child.type == .input_text) {
+            child.type.input_text.cursor_offset = self.measure_text_fn(child.type.input_text.content, child.type.input_text.font_size).width;
+        }
     }
 
     const remaining_height = content_height - used_height - gap_total;
@@ -152,6 +157,11 @@ fn layoutHorizontal(self: *const Layout, node: *Node, content_width: i32, conten
             .fit => self.measureChildHeight(child),
             .grow => content_height,
         };
+
+        // Update cursor offset for input_text regardless of sizing
+        if (child.type == .input_text) {
+            child.type.input_text.cursor_offset = self.measure_text_fn(child.type.input_text.content, child.type.input_text.font_size).width;
+        }
     }
 
     const remaining_width = content_width - used_width - gap_total;
@@ -215,6 +225,11 @@ fn measureChildWidth(self: *const Layout, child: *Node) i32 {
         },
         .progress_bar => 100,
         .slider => 100,
+        .input_text => |*t| {
+            const text_width = self.measure_text_fn(t.content, t.font_size).width;
+            t.cursor_offset = text_width;
+            return text_width + child.padding.left + child.padding.right;
+        },
         .container => 100,
     };
 }
@@ -233,6 +248,10 @@ fn measureChildHeight(self: *const Layout, child: *Node) i32 {
         },
         .progress_bar => 20,
         .slider => 20,
+        .input_text => |t| {
+            const text_height = self.measure_text_fn(t.content, t.font_size).height;
+            return text_height + child.padding.top + child.padding.bottom;
+        },
         .container => 100,
     };
 }

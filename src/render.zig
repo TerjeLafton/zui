@@ -184,5 +184,51 @@ fn collectFromNode(node: *const Node, commands: *std.ArrayList(RenderCommand), a
                 },
             });
         },
+        .input_text => |t| {
+            // Draw border
+            if (t.border) |border| {
+                try commands.append(allocator, .{
+                    .rect_lines = .{
+                        .x = node.x,
+                        .y = node.y,
+                        .w = node.actual_width,
+                        .h = node.actual_height,
+                        .thickness = border.width,
+                        .corner_radius = node.corner_radius,
+                        .color = border.color,
+                    },
+                });
+            }
+
+            const has_content = t.content.len > 0;
+            const display_text = if (has_content) t.content else t.placeholder;
+            const text_color = if (has_content) t.font_color else t.placeholder_color;
+
+            // Draw text
+            try commands.append(allocator, .{
+                .text = .{
+                    .x = node.x + node.padding.left,
+                    .y = node.y + node.padding.top,
+                    .content = display_text,
+                    .size = t.font_size,
+                    .color = text_color,
+                },
+            });
+
+            // Draw cursor if focused
+            if (t.focused) {
+                const cursor_x = node.x + node.padding.left + t.cursor_offset + 2;
+                try commands.append(allocator, .{
+                    .line = .{
+                        .x1 = cursor_x,
+                        .y1 = node.y + node.padding.top,
+                        .x2 = cursor_x,
+                        .y2 = node.y + node.actual_height - node.padding.bottom,
+                        .thickness = 2,
+                        .color = t.font_color,
+                    },
+                });
+            }
+        },
     }
 }
