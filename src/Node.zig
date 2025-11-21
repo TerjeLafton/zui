@@ -33,7 +33,6 @@ pub fn format(self: @This(), writer: *std.io.Writer) std.io.Writer.Error!void {
 }
 
 fn formatNode(node: Node, writer: *std.io.Writer, depth: usize) std.io.Writer.Error!void {
-    // Write indent
     var i: usize = 0;
     while (i < depth) : (i += 1) {
         try writer.writeAll("  ");
@@ -79,29 +78,6 @@ fn formatNode(node: Node, writer: *std.io.Writer, depth: usize) std.io.Writer.Er
         },
     }
 }
-
-const NodeType = union(enum) {
-    container: struct {
-        direction: enum { vertical, horizontal },
-        border: ?Border = null,
-        child_gap: i32,
-        child_alignment: Alignment = .{},
-        children: std.ArrayList(Node),
-    },
-
-    text: struct {
-        content: []const u8,
-        font_color: Color,
-        font_size: i32,
-    },
-
-    button: struct {
-        id: []const u8,
-        label: []const u8,
-        font_color: Color,
-        font_size: i32,
-    },
-};
 
 pub const Color = struct {
     r: u8,
@@ -174,4 +150,27 @@ pub const Padding = struct {
             .right => Padding{ .right = value },
         };
     }
+};
+
+const NodeType = union(enum) {
+    container: struct {
+        direction: enum { vertical, horizontal },
+        border: ?Border = null,
+        child_gap: i32,
+        child_alignment: Alignment = .{},
+        children: std.ArrayList(Node),
+    },
+
+    text: struct {
+        content: []const u8,
+        font_color: Color,
+        font_size: i32,
+    },
+
+    button: struct {
+        id: []const u8,
+        label: []const u8,
+        font_color: Color,
+        font_size: i32,
+    },
 };
