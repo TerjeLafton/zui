@@ -5,8 +5,6 @@ const zui = @import("zui");
 
 const rl_render = @import("renderers/raylib.zig");
 
-var checkbox_checked = false;
-
 pub fn main() !void {
     var gpa = std.heap.DebugAllocator(.{}).init;
     defer _ = gpa.deinit();
@@ -22,7 +20,11 @@ pub fn main() !void {
 
     rl.setTargetFPS(60);
 
+    var progress: f32 = 0.0;
+
     while (!rl.windowShouldClose()) {
+        progress += 0.005;
+        if (progress > 1.0) progress = 0.0;
         // Provide mouse input to UI
         ui.setMouseInput(.{
             .x = rl.getMouseX(),
@@ -38,8 +40,9 @@ pub fn main() !void {
         try ui.beginVBox(.{
             .border = .{
                 .width = 5,
-                .color = .{ .r = 0, .g = 0, .b = 0 },
+                .color = .{ .r = 100, .g = 100, .b = 100 },
             },
+            .bg_color = .{ .r = 0, .g = 0, .b = 0 },
             .padding = .all(25),
             .sizing = .{
                 .height = .{ .grow = 1 },
@@ -49,6 +52,7 @@ pub fn main() !void {
 
         try ui.text("HEADER!", .{
             .font_size = 100,
+            .font_color = .{ .r = 255, .g = 255, .b = 255 },
             .self_alignment = .{ .x = .center },
         });
 
@@ -58,6 +62,11 @@ pub fn main() !void {
                 .height = .{ .grow = 1 },
                 .width = .{ .grow = 1 },
             },
+        });
+        try ui.progressBar(progress, .{
+            .sizing = .{ .width = .{ .fixed = 200 }, .height = .{ .fixed = 24 } },
+            .corner_radius = 4,
+            .self_alignment = .{ .x = .center },
         });
 
         try section(&ui, "left_btn", "Left <--");

@@ -213,6 +213,7 @@ fn measureChildWidth(self: *const Layout, child: *Node) i32 {
             const gap = 8;
             return box_size + gap + text_width;
         },
+        .progress_bar => 100,
         .container => 100,
     };
 }
@@ -229,6 +230,7 @@ fn measureChildHeight(self: *const Layout, child: *Node) i32 {
             const box_size = c.font_size;
             return @max(box_size, text_height);
         },
+        .progress_bar => 20,
         .container => 100,
     };
 }

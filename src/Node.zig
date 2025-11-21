@@ -131,4 +131,9 @@ const NodeType = union(enum) {
         font_color: Color,
         font_size: i32,
     },
+
+    progress_bar: struct {
+        progress: f32,
+        fill_color: Color,
+    },
 };

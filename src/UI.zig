@@ -173,6 +173,30 @@ pub fn button(self: *UI, id: []const u8, label: []const u8, opts: struct {
     return false;
 }
 
+pub fn progressBar(self: *UI, progress: f32, opts: struct {
+    sizing: Node.Sizing = .{ .width = .{ .fixed = 100 }, .height = .{ .fixed = 20 } },
+    self_alignment: ?Node.Alignment = null,
+    bg_color: ?Node.Color = .{ .r = 50, .g = 50, .b = 50, .a = 255 },
+    fill_color: Node.Color = .{ .r = 100, .g = 200, .b = 100, .a = 255 },
+    border: ?Node.Border = null,
+    corner_radius: i32 = 0,
+}) !void {
+    const node = Node{
+        .sizing = opts.sizing,
+        .self_alignment = opts.self_alignment,
+        .bg_color = opts.bg_color,
+        .corner_radius = opts.corner_radius,
+        .type = .{
+            .progress_bar = .{
+                .progress = progress,
+                .fill_color = opts.fill_color,
+            },
+        },
+    };
+
+    _ = try self.addNodeAndGetPointer(node);
+}
+
 pub fn checkbox(self: *UI, id: []const u8, label: []const u8, checked: *bool, opts: struct {
     self_alignment: ?Node.Alignment = null,
     font_color: Node.Color = .{ .r = 0, .g = 0, .b = 0, .a = 255 },

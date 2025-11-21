@@ -137,5 +137,23 @@ fn collectFromNode(node: *const Node, commands: *std.ArrayList(RenderCommand), a
                 },
             });
         },
+        .progress_bar => |p| {
+            const progress = std.math.clamp(p.progress, 0.0, 1.0);
+            const fill_width: i32 = @intFromFloat(@as(f32, @floatFromInt(node.actual_width)) * progress);
+
+            // Draw fill
+            if (fill_width > 0) {
+                try commands.append(allocator, .{
+                    .rect = .{
+                        .x = node.x,
+                        .y = node.y,
+                        .w = fill_width,
+                        .h = node.actual_height,
+                        .corner_radius = node.corner_radius,
+                        .color = p.fill_color,
+                    },
+                });
+            }
+        },
     }
 }
