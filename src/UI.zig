@@ -168,6 +168,42 @@ pub fn button(self: *UI, id: []const u8, label: []const u8, opts: struct {
     return false;
 }
 
+pub fn checkbox(self: *UI, id: []const u8, label: []const u8, checked: *bool, opts: struct {
+    self_alignment: ?Node.Alignment = null,
+    font_color: Node.Color = .{ .r = 0, .g = 0, .b = 0, .a = 255 },
+    font_size: i32 = 16,
+}) !bool {
+    const node = Node{
+        .sizing = .{},
+        .self_alignment = opts.self_alignment,
+        .type = .{
+            .checkbox = .{
+                .id = id,
+                .label = label,
+                .checked = checked.*,
+                .font_color = opts.font_color,
+                .font_size = opts.font_size,
+            },
+        },
+    };
+
+    _ = try self.addNodeAndGetPointer(node);
+
+    if (self.prev_interactables.get(id)) |rect| {
+        if (self.mouse_input.left_pressed) {
+            const in_bounds = self.mouse_input.x >= rect.x and
+                self.mouse_input.x < rect.x + rect.w and
+                self.mouse_input.y >= rect.y and
+                self.mouse_input.y < rect.y + rect.h;
+            if (in_bounds) {
+                checked.* = !checked.*;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 pub fn computeLayout(self: *UI, window_width: i32, window_height: i32) !void {
     if (self.root) |*root_node| {
         Layout.compute(root_node, 0, 0, window_width, window_height, self.measure_text_fn);
@@ -180,16 +216,6 @@ pub fn getRenderCommands(self: *UI) ![]RenderCommand {
         return render.collectRenderCommands(root_node, self.allocator);
     }
     return &[_]RenderCommand{};
-}
-
-pub fn format(self: @This(), writer: *std.io.Writer) std.io.Writer.Error!void {
-    try writer.writeAll("UI {\n");
-    if (self.root) |root_node| {
-        try formatNodeAtDepth(root_node, writer, 1);
-    } else {
-        try writer.writeAll("  (no root)\n");
-    }
-    try writer.writeAll("}\n");
 }
 
 fn addNode(self: *UI, node: Node) !void {
@@ -216,66 +242,29 @@ fn addNodeAndGetPointer(self: *UI, node: Node) !*Node {
 }
 
 fn storeInteractablePositions(self: *UI, node: *Node) !void {
-    if (node.type == .button) {
-        try self.curr_interactables.put(node.type.button.id, .{
-            .x = node.x,
-            .y = node.y,
-            .w = node.actual_width,
-            .h = node.actual_height,
-        });
-    }
-
-    if (node.type == .container) {
-        for (node.type.container.children.items) |*child| {
-            try self.storeInteractablePositions(child);
-        }
-    }
-}
-
-fn formatNodeAtDepth(node: Node, writer: *std.io.Writer, depth: usize) std.io.Writer.Error!void {
-    var i: usize = 0;
-    while (i < depth) : (i += 1) {
-        try writer.writeAll("  ");
-    }
-
     switch (node.type) {
-        .container => |c| {
-            try writer.print("Container({s}, spacing={}) [{}x{} at ({},{})]", .{
-                @tagName(c.direction),
-                c.child_gap,
-                node.actual_width,
-                node.actual_height,
-                node.x,
-                node.y,
+        .button => |b| {
+            try self.curr_interactables.put(b.id, .{
+                .x = node.x,
+                .y = node.y,
+                .w = node.actual_width,
+                .h = node.actual_height,
             });
-
-            if (c.children.items.len > 0) {
-                try writer.writeAll(":\n");
-                for (c.children.items) |child| {
-                    try formatNodeAtDepth(child, writer, depth + 1);
-                }
-            } else {
-                try writer.writeAll(" (empty)\n");
+        },
+        .checkbox => |c| {
+            try self.curr_interactables.put(c.id, .{
+                .x = node.x,
+                .y = node.y,
+                .w = node.actual_width,
+                .h = node.actual_height,
+            });
+        },
+        .container => |cont| {
+            for (cont.children.items) |*child| {
+                try self.storeInteractablePositions(child);
             }
         },
-        .text => |t| {
-            try writer.print("Text(\"{s}\") [{}x{} at ({},{})]\n", .{
-                t.content,
-                node.actual_width,
-                node.actual_height,
-                node.x,
-                node.y,
-            });
-        },
-        .button => |b| {
-            try writer.print("Button(\"{s}\") [{}x{} at ({},{})]\n", .{
-                b.label,
-                node.actual_width,
-                node.actual_height,
-                node.x,
-                node.y,
-            });
-        },
+        else => {},
     }
 }
 

@@ -28,57 +28,6 @@ pub fn deinit(self: *Node, allocator: std.mem.Allocator) void {
     }
 }
 
-pub fn format(self: @This(), writer: *std.io.Writer) std.io.Writer.Error!void {
-    try formatNode(self, writer, 0);
-}
-
-fn formatNode(node: Node, writer: *std.io.Writer, depth: usize) std.io.Writer.Error!void {
-    var i: usize = 0;
-    while (i < depth) : (i += 1) {
-        try writer.writeAll("  ");
-    }
-
-    switch (node.type) {
-        .container => |c| {
-            try writer.print("Container({s}, gap={}) [{}x{} at ({},{})]", .{
-                @tagName(c.direction),
-                c.child_gap,
-                node.actual_width,
-                node.actual_height,
-                node.x,
-                node.y,
-            });
-
-            if (c.children.items.len > 0) {
-                try writer.writeAll(":\n");
-                for (c.children.items) |child| {
-                    try formatNode(child, writer, depth + 1);
-                }
-            } else {
-                try writer.writeAll(" (empty)\n");
-            }
-        },
-        .text => |t| {
-            try writer.print("Text(\"{s}\") [{}x{} at ({},{})]\n", .{
-                t.content,
-                node.actual_width,
-                node.actual_height,
-                node.x,
-                node.y,
-            });
-        },
-        .button => |b| {
-            try writer.print("Button(\"{s}\") [{}x{} at ({},{})]\n", .{
-                b.label,
-                node.actual_width,
-                node.actual_height,
-                node.x,
-                node.y,
-            });
-        },
-    }
-}
-
 pub const Color = struct {
     r: u8,
     g: u8,
@@ -170,6 +119,14 @@ const NodeType = union(enum) {
     button: struct {
         id: []const u8,
         label: []const u8,
+        font_color: Color,
+        font_size: i32,
+    },
+
+    checkbox: struct {
+        id: []const u8,
+        label: []const u8,
+        checked: bool,
         font_color: Color,
         font_size: i32,
     },

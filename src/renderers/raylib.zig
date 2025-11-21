@@ -66,6 +66,15 @@ pub fn render(commands: []zui.RenderCommand) void {
                 const color = rl.Color{ .r = t.color.r, .g = t.color.g, .b = t.color.b, .a = t.color.a };
                 rl.drawText(text, t.x, t.y, t.size, color);
             },
+            .line => |l| {
+                const color = rl.Color{ .r = l.color.r, .g = l.color.g, .b = l.color.b, .a = l.color.a };
+                rl.drawLineEx(
+                    .{ .x = @floatFromInt(l.x1), .y = @floatFromInt(l.y1) },
+                    .{ .x = @floatFromInt(l.x2), .y = @floatFromInt(l.y2) },
+                    @floatFromInt(l.thickness),
+                    color,
+                );
+            },
         }
     }
 }

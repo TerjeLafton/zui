@@ -207,6 +207,12 @@ fn measureChildWidth(self: *const Layout, child: *Node) i32 {
             const text_width = self.measure_text_fn(b.label, b.font_size).width;
             return text_width + child.padding.left + child.padding.right;
         },
+        .checkbox => |c| {
+            const text_width = self.measure_text_fn(c.label, c.font_size).width;
+            const box_size = c.font_size;
+            const gap = 8;
+            return box_size + gap + text_width;
+        },
         .container => 100,
     };
 }
@@ -217,6 +223,11 @@ fn measureChildHeight(self: *const Layout, child: *Node) i32 {
         .button => |b| {
             const text_height = self.measure_text_fn(b.label, b.font_size).height;
             return text_height + child.padding.top + child.padding.bottom;
+        },
+        .checkbox => |c| {
+            const text_height = self.measure_text_fn(c.label, c.font_size).height;
+            const box_size = c.font_size;
+            return @max(box_size, text_height);
         },
         .container => 100,
     };

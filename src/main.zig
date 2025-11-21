@@ -5,6 +5,8 @@ const zui = @import("zui");
 
 const rl_render = @import("renderers/raylib.zig");
 
+var checkbox_checked = false;
+
 pub fn main() !void {
     var gpa = std.heap.DebugAllocator(.{}).init;
     defer _ = gpa.deinit();
@@ -49,6 +51,7 @@ pub fn main() !void {
             .font_size = 100,
             .self_alignment = .{ .x = .center },
         });
+
         try ui.beginHBox(.{
             .child_gap = 25,
             .sizing = .{
@@ -95,8 +98,9 @@ fn section(ui: *zui.UI, id: []const u8, text: []const u8) !void {
         .child_gap = 15,
     });
     try ui.text(text, .{ .font_size = 24 });
-    if (try ui.button(id, "Click me!", .{})) {
-        std.debug.print("Button '{s}' was clicked!\n", .{id});
+    if (try ui.checkbox(id, "Enable feature", &checkbox_checked, .{})) {
+        std.debug.print("Checkbox toggled: {}\n", .{checkbox_checked});
     }
+
     ui.endVBox();
 }
