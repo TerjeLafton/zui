@@ -173,6 +173,50 @@ pub fn button(self: *UI, id: []const u8, label: []const u8, opts: struct {
     return false;
 }
 
+pub fn slider(self: *UI, id: []const u8, value: *f32, opts: struct {
+    sizing: Node.Sizing = .{ .width = .{ .fixed = 100 }, .height = .{ .fixed = 20 } },
+    self_alignment: ?Node.Alignment = null,
+    track_color: Node.Color = .{ .r = 80, .g = 80, .b = 80, .a = 255 },
+    handle_color: Node.Color = .{ .r = 200, .g = 200, .b = 200, .a = 255 },
+    handle_width: i32 = 16,
+    corner_radius: i32 = 0,
+}) !bool {
+    const node = Node{
+        .sizing = opts.sizing,
+        .self_alignment = opts.self_alignment,
+        .corner_radius = opts.corner_radius,
+        .type = .{
+            .slider = .{
+                .id = id,
+                .value = value.*,
+                .track_color = opts.track_color,
+                .handle_color = opts.handle_color,
+                .handle_width = opts.handle_width,
+            },
+        },
+    };
+
+    _ = try self.addNodeAndGetPointer(node);
+
+    // Check interaction using previous frame's position
+    if (self.prev_interactables.get(id)) |rect| {
+        if (self.mouse_input.left_down) {
+            const in_bounds = self.mouse_input.x >= rect.x and
+                self.mouse_input.x < rect.x + rect.w and
+                self.mouse_input.y >= rect.y and
+                self.mouse_input.y < rect.y + rect.h;
+            if (in_bounds) {
+                const track_width = rect.w - opts.handle_width;
+                const relative_x = self.mouse_input.x - rect.x - @divTrunc(opts.handle_width, 2);
+                const new_value = @as(f32, @floatFromInt(relative_x)) / @as(f32, @floatFromInt(track_width));
+                value.* = std.math.clamp(new_value, 0.0, 1.0);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 pub fn progressBar(self: *UI, progress: f32, opts: struct {
     sizing: Node.Sizing = .{ .width = .{ .fixed = 100 }, .height = .{ .fixed = 20 } },
     self_alignment: ?Node.Alignment = null,
@@ -282,6 +326,14 @@ fn storeInteractablePositions(self: *UI, node: *Node) !void {
         },
         .checkbox => |c| {
             try self.curr_interactables.put(c.id, .{
+                .x = node.x,
+                .y = node.y,
+                .w = node.actual_width,
+                .h = node.actual_height,
+            });
+        },
+        .slider => |s| {
+            try self.curr_interactables.put(s.id, .{
                 .x = node.x,
                 .y = node.y,
                 .w = node.actual_width,

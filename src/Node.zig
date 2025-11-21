@@ -136,4 +136,12 @@ const NodeType = union(enum) {
         progress: f32,
         fill_color: Color,
     },
+
+    slider: struct {
+        id: []const u8,
+        value: f32,
+        track_color: Color,
+        handle_color: Color,
+        handle_width: i32,
+    },
 };

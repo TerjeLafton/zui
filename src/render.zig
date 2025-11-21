@@ -155,5 +155,34 @@ fn collectFromNode(node: *const Node, commands: *std.ArrayList(RenderCommand), a
                 });
             }
         },
+        .slider => |s| {
+            const value = std.math.clamp(s.value, 0.0, 1.0);
+            const track_width = node.actual_width - s.handle_width;
+            const handle_x: i32 = node.x + @as(i32, @intFromFloat(@as(f32, @floatFromInt(track_width)) * value));
+
+            // Draw track
+            try commands.append(allocator, .{
+                .rect = .{
+                    .x = node.x,
+                    .y = node.y,
+                    .w = node.actual_width,
+                    .h = node.actual_height,
+                    .corner_radius = node.corner_radius,
+                    .color = s.track_color,
+                },
+            });
+
+            // Draw handle
+            try commands.append(allocator, .{
+                .rect = .{
+                    .x = handle_x,
+                    .y = node.y,
+                    .w = s.handle_width,
+                    .h = node.actual_height,
+                    .corner_radius = node.corner_radius,
+                    .color = s.handle_color,
+                },
+            });
+        },
     }
 }

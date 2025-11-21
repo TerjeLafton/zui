@@ -20,11 +20,9 @@ pub fn main() !void {
 
     rl.setTargetFPS(60);
 
-    var progress: f32 = 0.0;
+    var slider_value: f32 = 0.5;
 
     while (!rl.windowShouldClose()) {
-        progress += 0.005;
-        if (progress > 1.0) progress = 0.0;
         // Provide mouse input to UI
         ui.setMouseInput(.{
             .x = rl.getMouseX(),
@@ -63,7 +61,13 @@ pub fn main() !void {
                 .width = .{ .grow = 1 },
             },
         });
-        try ui.progressBar(progress, .{
+        _ = try ui.slider("my_slider", &slider_value, .{
+            .sizing = .{ .width = .{ .fixed = 200 }, .height = .{ .fixed = 24 } },
+            .corner_radius = 4,
+            .self_alignment = .{ .x = .center },
+        });
+
+        try ui.progressBar(slider_value, .{
             .sizing = .{ .width = .{ .fixed = 200 }, .height = .{ .fixed = 24 } },
             .corner_radius = 4,
             .self_alignment = .{ .x = .center },
