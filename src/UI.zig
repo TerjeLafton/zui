@@ -135,21 +135,26 @@ pub fn text(self: *UI, content: []const u8, opts: struct {
 pub fn button(self: *UI, id: []const u8, label: []const u8, opts: struct {
     sizing: Node.Sizing = .{},
     self_alignment: ?Node.Alignment = null,
-    bg_normal: Node.Color = .{ .r = 150, .g = 150, .b = 150, .a = 255 },
+    bg_color: Node.Color = .{ .r = 150, .g = 150, .b = 150, .a = 255 },
+    border: ?Node.Border = null,
+    corner_radius: i32 = 0,
+    padding: Node.Padding = .all(10),
     font_color: Node.Color = .{ .r = 255, .g = 255, .b = 255, .a = 255 },
     font_size: i32 = 16,
 }) !bool {
     const node = Node{
         .sizing = opts.sizing,
         .self_alignment = opts.self_alignment,
-        .bg_color = opts.bg_normal,
-        .padding = .all(10),
+        .bg_color = opts.bg_color,
+        .corner_radius = opts.corner_radius,
+        .padding = opts.padding,
         .type = .{
             .button = .{
                 .id = id,
                 .label = label,
                 .font_color = opts.font_color,
                 .font_size = opts.font_size,
+                .border = opts.border,
             },
         },
     };

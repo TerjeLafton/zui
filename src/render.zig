@@ -66,6 +66,20 @@ fn collectFromNode(node: *const Node, commands: *std.ArrayList(RenderCommand), a
             });
         },
         .button => |b| {
+            if (b.border) |border| {
+                try commands.append(allocator, .{
+                    .rect_lines = .{
+                        .x = node.x,
+                        .y = node.y,
+                        .w = node.actual_width,
+                        .h = node.actual_height,
+                        .thickness = border.width,
+                        .corner_radius = node.corner_radius,
+                        .color = border.color,
+                    },
+                });
+            }
+
             try commands.append(allocator, .{
                 .text = .{
                     .x = node.x + node.padding.left,

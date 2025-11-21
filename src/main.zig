@@ -98,8 +98,12 @@ fn section(ui: *zui.UI, id: []const u8, text: []const u8) !void {
         .child_gap = 15,
     });
     try ui.text(text, .{ .font_size = 24 });
-    if (try ui.checkbox(id, "Enable feature", &checkbox_checked, .{})) {
-        std.debug.print("Checkbox toggled: {}\n", .{checkbox_checked});
+    if (try ui.button(id, text, .{
+        .bg_color = .{ .r = 120, .g = 120, .b = 120 },
+        .border = .{ .width = 2 },
+        .corner_radius = 10,
+    })) {
+        std.debug.print("Button pressed: {s}\n", .{text});
     }
 
     ui.endVBox();

@@ -121,6 +121,7 @@ const NodeType = union(enum) {
         label: []const u8,
         font_color: Color,
         font_size: i32,
+        border: ?Border = null,
     },
 
     checkbox: struct {
