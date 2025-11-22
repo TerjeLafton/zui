@@ -18,18 +18,20 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    const exe_mod = b.addModule("zui_app", .{
+        .root_source_file = b.path("src/main.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "zui", .module = mod },
+            .{ .name = "raylib", .module = raylib },
+            .{ .name = "raygui", .module = raygui },
+        },
+    });
+
     const exe = b.addExecutable(.{
         .name = "zui",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("src/main.zig"),
-            .target = target,
-            .optimize = optimize,
-            .imports = &.{
-                .{ .name = "zui", .module = mod },
-                .{ .name = "raylib", .module = raylib },
-                .{ .name = "raygui", .module = raygui },
-            },
-        }),
+        .root_module = exe_mod,
     });
     exe.linkLibrary(raylib_artifact);
     b.installArtifact(exe);
@@ -54,7 +56,7 @@ pub fn build(b: *std.Build) void {
 
     const mod_check = b.addExecutable(.{
         .name = "zui",
-        .root_module = mod,
+        .root_module = exe_mod,
     });
 
     const check = b.step("check", "Check if zui compiles");
