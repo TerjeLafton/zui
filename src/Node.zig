@@ -62,6 +62,11 @@ pub const AlignMode = enum {
     end,
 };
 
+pub const Direction = enum {
+    vertical,
+    horizontal,
+};
+
 pub const Padding = struct {
     top: i32 = 0,
     bottom: i32 = 0,
@@ -103,7 +108,7 @@ pub const Padding = struct {
 
 const NodeType = union(enum) {
     container: struct {
-        direction: enum { vertical, horizontal },
+        direction: Direction,
         border: ?Border = null,
         child_gap: i32,
         child_alignment: Alignment = .{},

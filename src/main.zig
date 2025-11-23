@@ -37,7 +37,8 @@ pub fn main() !void {
         rl.beginDrawing();
         rl.clearBackground(rl.Color.white);
 
-        try ui.beginVBox(.{
+        try ui.beginLayout(.{
+            .direction = .vertical,
             .border = .{
                 .width = 5,
                 .color = .{ .r = 100, .g = 100, .b = 100 },
@@ -56,7 +57,8 @@ pub fn main() !void {
             .self_alignment = .{ .x = .center },
         });
 
-        try ui.beginHBox(.{
+        try ui.beginLayout(.{
+            .direction = .horizontal,
             .child_gap = 25,
             .sizing = .{
                 .height = .{ .grow = 1 },
@@ -78,9 +80,9 @@ pub fn main() !void {
         try section(&ui, "left_btn", "Left <--");
         try section(&ui, "right_btn", "Right -->");
 
-        ui.endHBox();
+        ui.endLayout();
 
-        ui.endVBox();
+        ui.endLayout();
 
         try ui.computeLayout(screenWidth, screenHeight);
 
@@ -94,7 +96,8 @@ pub fn main() !void {
 }
 
 fn section(ui: *zui.UI, id: []const u8, text: []const u8) !void {
-    try ui.beginVBox(.{
+    try ui.beginLayout(.{
+        .direction = .vertical,
         .border = .{
             .width = 5,
             .color = .{ .r = 0, .g = 0, .b = 0 },
@@ -121,5 +124,5 @@ fn section(ui: *zui.UI, id: []const u8, text: []const u8) !void {
         std.debug.print("Button pressed: {s}\n", .{text});
     }
 
-    ui.endVBox();
+    ui.endLayout();
 }

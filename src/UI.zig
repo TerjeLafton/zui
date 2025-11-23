@@ -55,7 +55,8 @@ pub fn setKeyboardInput(self: *UI, keyboard_input: KeyboardInput) void {
     }
 }
 
-pub fn beginVBox(self: *UI, opts: struct {
+pub fn beginLayout(self: *UI, opts: struct {
+    direction: Node.Direction,
     sizing: Node.Sizing = .{},
     border: ?Node.Border = null,
     corner_radius: i32 = 0,
@@ -73,7 +74,7 @@ pub fn beginVBox(self: *UI, opts: struct {
         .corner_radius = opts.corner_radius,
         .type = .{
             .container = .{
-                .direction = .vertical,
+                .direction = opts.direction,
                 .border = opts.border,
                 .child_gap = opts.child_gap,
                 .child_alignment = opts.child_alignment,
@@ -85,40 +86,7 @@ pub fn beginVBox(self: *UI, opts: struct {
     try self.addNode(node);
 }
 
-pub fn beginHBox(self: *UI, opts: struct {
-    sizing: Node.Sizing = .{},
-    border: ?Node.Border = null,
-    corner_radius: i32 = 0,
-    self_alignment: ?Node.Alignment = null,
-    child_alignment: Node.Alignment = .{},
-    child_gap: i32 = 0,
-    padding: Node.Padding = .all(0),
-    bg_color: ?Node.Color = null,
-}) !void {
-    const node = Node{
-        .sizing = opts.sizing,
-        .self_alignment = opts.self_alignment,
-        .padding = opts.padding,
-        .bg_color = opts.bg_color,
-        .corner_radius = opts.corner_radius,
-        .type = .{
-            .container = .{
-                .direction = .horizontal,
-                .border = opts.border,
-                .child_gap = opts.child_gap,
-                .child_alignment = opts.child_alignment,
-                .children = std.ArrayList(Node).empty,
-            },
-        },
-    };
-    try self.addNode(node);
-}
-
-pub fn endVBox(self: *UI) void {
-    _ = self.stack.pop();
-}
-
-pub fn endHBox(self: *UI) void {
+pub fn endLayout(self: *UI) void {
     _ = self.stack.pop();
 }
 
